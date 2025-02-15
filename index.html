@@ -3,167 +3,169 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>モノクロ盤面ゲーム</title>
+  <title>反射する点の動き</title>
   <style>
     body {
       margin: 0;
+      padding: 0;
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
       background-color: #f0f0f0;
     }
-
     #board {
       display: grid;
       grid-template-columns: repeat(100, 1fr);
       grid-template-rows: repeat(100, 1fr);
-      width: 500px;
-      height: 500px;
+      width: 80vmin;
+      height: 80vmin;
       border: 3px solid black;
       position: relative;
       background-color: white;
     }
-
     .cell {
-      border: 0.5px solid lightgray;
+      border: 1px solid #d3d3d3;
+      box-sizing: border-box;
     }
-
     .dot {
       position: absolute;
       width: 100%;
       height: 100%;
       background-color: black;
+      border-radius: 50%;
+      pointer-events: none;
     }
-
-    button {
+    .buttons {
       margin-top: 20px;
-      padding: 10px 20px;
-      font-size: 16px;
+      display: flex;
+      gap: 10px;
+    }
+    button {
+      padding: 10px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
       cursor: pointer;
+      font-size: 14px;
+    }
+    button:disabled {
+      background-color: #ccc;
     }
   </style>
 </head>
 <body>
 
-<div id="board"></div>
-<button id="startBtn">開始</button>
-<button id="stopBtn">停止</button>
-<button id="resetBtn">リセット</button>
+  <div id="board"></div>
+  <div class="buttons">
+    <button id="startBtn">開始</button>
+    <button id="stopBtn" disabled>停止</button>
+    <button id="resetBtn">リセット</button>
+  </div>
 
-<script>
-  const boardSize = 100;
-  const dotCount = 10;
-  const cellSize = 5; // each cell size in px
-  let dots = [];
-  let interval;
-  let isRunning = false;
+  <script>
+    const boardSize = 100;
+    const dotCount = 10;
+    const dots = [];
+    const speeds = [];
 
-  // 盤面の作成
-  const board = document.getElementById("board");
-  for (let i = 0; i < boardSize * boardSize; i++) {
-    const cell = document.createElement("div");
-    cell.classList.add("cell");
-    board.appendChild(cell);
-  }
+    const board = document.getElementById('board');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const resetBtn = document.getElementById('resetBtn');
 
-  // 点の生成
-  function createDots() {
-    dots = [];
-    for (let i = 0; i < dotCount; i++) {
-      const dot = document.createElement("div");
-      dot.classList.add("dot");
-      dot.style.width = `${cellSize}px`;
-      dot.style.height = `${cellSize}px`;
-
-      const x = Math.floor(Math.random() * boardSize);
-      const y = Math.floor(Math.random() * boardSize);
-      const speed = Math.floor(Math.random() * 31) + 20; // 20～50マス/秒
-
-      dot.style.left = `${x * cellSize}px`;
-      dot.style.top = `${y * cellSize}px`;
-
-      dots.push({ dot, x, y, speed, dx: 1, dy: 1 });
-      board.appendChild(dot);
-    }
-  }
-
-  // 点の移動
-  function moveDots() {
-    dots.forEach(dotObj => {
-      let { dot, x, y, speed, dx, dy } = dotObj;
-      
-      // 点の移動
-      x += dx * speed / 50;
-      y += dy * speed / 50;
-
-      // 端で跳ね返り
-      if (x >= boardSize - 1 || x < 0) dx *= -1;
-      if (y >= boardSize - 1 || y < 0) dy *= -1;
-
-      // 点同士の衝突を避ける処理
-      dots.forEach(otherDotObj => {
-        if (dot !== otherDotObj.dot) {
-          const distX = Math.abs(otherDotObj.x - x);
-          const distY = Math.abs(otherDotObj.y - y);
-          if (distX < 1 && distY < 1) {
-            dx *= -1;
-            dy *= -1;
-          }
-        }
-      });
-
-      // 点の位置更新
-      dotObj.x = x;
-      dotObj.y = y;
-      dotObj.dx = dx;
-      dotObj.dy = dy;
-
-      dot.style.left = `${x * cellSize}px`;
-      dot.style.top = `${y * cellSize}px`;
-    });
-  }
-
-  // リセット処理
-  function resetBoard() {
-    clearInterval(interval);
-    board.innerHTML = '';
+    // 盤面のセルを作成
     for (let i = 0; i < boardSize * boardSize; i++) {
-      const cell = document.createElement("div");
-      cell.classList.add("cell");
+      const cell = document.createElement('div');
+      cell.classList.add('cell');
       board.appendChild(cell);
     }
-    createDots();
-    startGame(); // リセット後にゲームを自動で開始
-  }
 
-  // ゲーム開始
-  function startGame() {
-    if (!isRunning) {
-      isRunning = true;
-      interval = setInterval(() => {
-        moveDots();
-      }, 1000 / 50);
+    // ランダムな点の初期位置と速度を設定
+    function initDots() {
+      dots.length = 0;
+      speeds.length = 0;
+      for (let i = 0; i < dotCount; i++) {
+        const x = Math.floor(Math.random() * boardSize);
+        const y = Math.floor(Math.random() * boardSize);
+        const speed = Math.floor(Math.random() * 31) + 20; // 20～50マスのランダムな速度
+
+        dots.push({ x, y });
+        speeds.push({ x: speed * (Math.random() < 0.5 ? 1 : -1), y: speed * (Math.random() < 0.5 ? 1 : -1) });
+      }
     }
-  }
 
-  // ゲーム停止
-  function stopGame() {
-    clearInterval(interval);
-    isRunning = false;
-  }
+    // 点を盤面に配置
+    function renderDots() {
+      const dotElements = document.querySelectorAll('.dot');
+      dotElements.forEach(el => el.remove());
 
-  // ボタン操作
-  document.getElementById("startBtn").addEventListener("click", startGame);
-  document.getElementById("stopBtn").addEventListener("click", stopGame);
-  document.getElementById("resetBtn").addEventListener("click", resetBoard);
+      dots.forEach(dot => {
+        const dotElement = document.createElement('div');
+        dotElement.classList.add('dot');
+        dotElement.style.left = `${dot.x * 100 / boardSize}%`;
+        dotElement.style.top = `${dot.y * 100 / boardSize}%`;
+        board.appendChild(dotElement);
+      });
+    }
 
-  // 1分ごとにリセット
-  setInterval(resetBoard, 60000);
+    // 1秒ごとに点を更新
+    let animationId;
+    function moveDots() {
+      for (let i = 0; i < dotCount; i++) {
+        const dot = dots[i];
+        const speed = speeds[i];
 
-  // 初期化
-  resetBoard();
-</script>
+        dot.x += speed.x;
+        dot.y += speed.y;
 
+        // 端で反射
+        if (dot.x <= 0 || dot.x >= boardSize - 1) {
+          speeds[i].x *= -1;
+        }
+        if (dot.y <= 0 || dot.y >= boardSize - 1) {
+          speeds[i].y *= -1;
+        }
+
+        // 点同士で反射
+        for (let j = 0; j < dotCount; j++) {
+          if (i !== j && Math.abs(dot.x - dots[j].x) <= 1 && Math.abs(dot.y - dots[j].y) <= 1) {
+            speeds[i].x *= -1;
+            speeds[i].y *= -1;
+            speeds[j].x *= -1;
+            speeds[j].y *= -1;
+          }
+        }
+      }
+
+      renderDots();
+    }
+
+    // 開始ボタン
+    startBtn.addEventListener('click', () => {
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      initDots();
+      renderDots();
+      animationId = setInterval(moveDots, 1000 / 30); // 30FPS
+    });
+
+    // 停止ボタン
+    stopBtn.addEventListener('click', () => {
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      clearInterval(animationId);
+    });
+
+    // リセットボタン
+    resetBtn.addEventListener('click', () => {
+      clearInterval(animationId);
+      initDots();
+      renderDots();
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    });
+
+  </script>
 </body>
 </html>
