@@ -88,6 +88,7 @@
       let newX = rect.left - boardRect.left + dot.dx;
       let newY = rect.top - boardRect.top + dot.dy;
 
+      // Prevent dots from moving outside the board
       if (newX <= 0 || newX >= boardSize - 5) dot.dx *= -1;
       if (newY <= 0 || newY >= boardSize - 5) dot.dy *= -1;
 
@@ -105,8 +106,8 @@
         }
       });
 
-      dot.style.left = `${newX}px`;
-      dot.style.top = `${newY}px`;
+      dot.style.left = `${Math.max(0, Math.min(newX, boardSize - 5))}px`;
+      dot.style.top = `${Math.max(0, Math.min(newY, boardSize - 5))}px`;
     });
   }
 
