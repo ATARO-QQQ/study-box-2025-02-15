@@ -1,176 +1,140 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>反射する点のゲーム</title>
+    <title>反射する点ゲーム</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
             margin: 0;
-            padding: 20px;
-            background-color: #fff;
+            background-color: #f0f0f0;
         }
-
-        #board {
+        .board {
+            display: grid;
+            grid-template-columns: repeat(100, 10px);
+            grid-template-rows: repeat(100, 10px);
+            gap: 1px;
+            border: 2px solid black;
             position: relative;
-            width: 500px;
-            height: 500px;
-            border: 5px solid black;
-            margin: auto;
             background-color: white;
         }
-
-        .grid {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            display: grid;
-            grid-template-columns: repeat(100, 1fr);
-            grid-template-rows: repeat(100, 1fr);
-        }
-
-        .grid div {
-            width: 100%;
-            height: 100%;
-            box-sizing: border-box;
-        }
-
-        .grid div:nth-child(odd) {
-            border-left: 1px solid #ddd;
-            border-top: 1px solid #ddd;
-        }
-
-        .grid div:nth-last-child(-n+100) {
-            border-bottom: 2px solid black;
-        }
-
-        .grid div:nth-child(100n) {
-            border-right: 2px solid black;
-        }
-
-        .point {
-            width: 5px;
-            height: 5px;
-            border-radius: 50%;
+        .grid-line {
             background-color: black;
-            position: absolute;
         }
-
+        .dot {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: black;
+            border-radius: 50%;
+        }
         button {
-            padding: 10px 20px;
             margin: 10px;
+            padding: 10px 20px;
             font-size: 16px;
             cursor: pointer;
         }
-
     </style>
 </head>
 <body>
-    <h1>反射する点のゲーム</h1>
-    <div id="board">
-        <div class="grid"></div>
-        <div id="points"></div>
-    </div>
-    <div>
+    <div class="controls">
         <button onclick="startGame()">開始</button>
         <button onclick="stopGame()">停止</button>
-        <button onclick="resetGame()">リセット</button>
+        <button onclick="resetBoard()">リセット</button>
     </div>
+    <div class="board" id="board"></div>
 
     <script>
-        const boardSize = 500;
+        const board = document.getElementById("board");
         const gridSize = 100;
-        const speed = 50; // 1秒間に50マス
+        const dots = [];
+        let gameInterval;
+        let dotSpeed = 50;  // 1秒間に50マス
 
-        let points = [];
-        let interval;
-        let gameRunning = false;
+        // 点の初期設定
+        function createDot() {
+            return {
+                x: Math.floor(Math.random() * gridSize),
+                y: Math.floor(Math.random() * gridSize),
+                dx: Math.random() > 0.5 ? 1 : -1,
+                dy: Math.random() > 0.5 ? 1 : -1,
+                element: null
+            };
+        }
 
-        // 点の初期化
-        function initializePoints() {
-            points = [];
-            for (let i = 0; i < 10; i++) {
-                points.push({
-                    x: Math.floor(Math.random() * gridSize),
-                    y: Math.floor(Math.random() * gridSize),
-                    dx: (Math.random() > 0.5 ? 1 : -1) * speed,
-                    dy: (Math.random() > 0.5 ? 1 : -1) * speed
-                });
+        // 盤面の初期化
+        function initBoard() {
+            board.innerHTML = "";
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    let gridCell = document.createElement("div");
+                    gridCell.classList.add("grid-line");
+                    board.appendChild(gridCell);
+                }
             }
         }
 
-        // 点の描画
-        function drawPoints() {
-            const pointsContainer = document.getElementById('points');
-            pointsContainer.innerHTML = '';
-            points.forEach(point => {
-                const div = document.createElement('div');
-                div.classList.add('point');
-                div.style.left = `${(point.x * boardSize) / gridSize}px`;
-                div.style.top = `${(point.y * boardSize) / gridSize}px`;
-                pointsContainer.appendChild(div);
-            });
+        // 点を配置
+        function placeDots() {
+            for (let i = 0; i < 10; i++) {
+                let dot = createDot();
+                dot.element = document.createElement("div");
+                dot.element.classList.add("dot");
+                board.appendChild(dot.element);
+                dots.push(dot);
+            }
         }
 
-        // 点の移動
-        function movePoints() {
-            points.forEach(point => {
-                point.x += point.dx / gridSize;
-                point.y += point.dy / gridSize;
+        // 点の動き
+        function moveDots() {
+            dots.forEach(dot => {
+                dot.x += dot.dx;
+                dot.y += dot.dy;
 
-                // 盤面の端で反射
-                if (point.x <= 0 || point.x >= gridSize) {
-                    point.dx = -point.dx;
-                }
-                if (point.y <= 0 || point.y >= gridSize) {
-                    point.dy = -point.dy;
-                }
+                // 盤面の端で跳ね返る
+                if (dot.x >= gridSize || dot.x < 0) dot.dx = -dot.dx;
+                if (dot.y >= gridSize || dot.y < 0) dot.dy = -dot.dy;
 
-                // 点同士の衝突判定
-                points.forEach(otherPoint => {
-                    if (point !== otherPoint && Math.abs(point.x - otherPoint.x) < 1 && Math.abs(point.y - otherPoint.y) < 1) {
-                        point.dx = -point.dx;
-                        point.dy = -point.dy;
+                // 点同士がぶつかると跳ね返る
+                dots.forEach(otherDot => {
+                    if (dot !== otherDot && Math.abs(dot.x - otherDot.x) <= 1 && Math.abs(dot.y - otherDot.y) <= 1) {
+                        dot.dx = -dot.dx;
+                        dot.dy = -dot.dy;
                     }
                 });
+
+                // 点の位置を更新
+                dot.element.style.left = `${dot.x * 10}px`;
+                dot.element.style.top = `${dot.y * 10}px`;
             });
         }
 
-        // ゲームの開始
+        // ゲーム開始
         function startGame() {
-            if (gameRunning) return;
-            gameRunning = true;
-            initializePoints();
-            drawPoints();
-            interval = setInterval(() => {
-                movePoints();
-                drawPoints();
-            }, 1000 / speed);
-            resetTimer();
+            initBoard();
+            placeDots();
+            gameInterval = setInterval(() => {
+                moveDots();
+            }, 1000 / dotSpeed);  // 50マス/秒
+            setTimeout(resetBoard, 60000);  // 1分ごとにリセット
         }
 
-        // ゲームの停止
+        // ゲーム停止
         function stopGame() {
-            gameRunning = false;
-            clearInterval(interval);
+            clearInterval(gameInterval);
         }
 
-        // ゲームのリセット
-        function resetGame() {
-            stopGame();
-            initializePoints();
-            drawPoints();
-        }
-
-        // 1分ごとに盤面をリセット
-        let resetTimerInterval;
-        function resetTimer() {
-            clearInterval(resetTimerInterval);
-            resetTimerInterval = setInterval(() => {
-                resetGame();
-            }, 60000); // 1分ごとにリセット
+        // 盤面リセット
+        function resetBoard() {
+            clearInterval(gameInterval);
+            dots.length = 0;
+            initBoard();
+            setTimeout(startGame, 500);  // ゲーム再開始
         }
     </script>
 </body>
