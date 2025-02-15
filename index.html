@@ -1,147 +1,151 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>反射する点のシミュレーション</title>
+    <title>モノクロ盤面ゲーム</title>
     <style>
         body {
+            font-family: Arial, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
-            background-color: #fff;
+            background-color: #f0f0f0;
         }
-
-        .board {
-            display: grid;
-            grid-template-columns: repeat(100, 1fr);
-            grid-template-rows: repeat(100, 1fr);
-            gap: 1px;
-            width: 500px;
-            height: 500px;
-            border: 2px solid black;
+        #board {
             position: relative;
+            width: 1000px;
+            height: 1000px;
+            display: grid;
+            grid-template-columns: repeat(100, 10px);
+            grid-template-rows: repeat(100, 10px);
+            border: 10px solid black;
         }
-
         .cell {
-            background-color: white;
-            border: 1px solid lightgray;
+            width: 10px;
+            height: 10px;
+            border: 1px solid #d3d3d3;
+            box-sizing: border-box;
         }
-
         .dot {
             position: absolute;
             width: 10px;
             height: 10px;
             background-color: black;
-            border-radius: 50%;
+            border-radius: 2px;
         }
-
-        .buttons {
-            position: fixed;
-            bottom: 20px;
-            display: flex;
-            gap: 10px;
-        }
-
-        button {
-            padding: 10px;
-            font-size: 16px;
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
         }
     </style>
 </head>
 <body>
-    <div class="board" id="board">
-        <!-- 100x100 grid -->
-        <div class="cell"></div>
-        <!-- 9999 more cells will be automatically created -->
-    </div>
-
-    <div class="buttons">
-        <button onclick="startGame()">開始</button>
-        <button onclick="stopGame()">停止</button>
-        <button onclick="resetGame()">リセット</button>
+    <div id="board"></div>
+    <div id="controls">
+        <button id="startButton">開始</button>
+        <button id="stopButton">停止</button>
+        <button id="resetButton">リセット</button>
     </div>
 
     <script>
         const board = document.getElementById('board');
-        const dots = [];
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        const resetButton = document.getElementById('resetButton');
+
         const numDots = 10;
-        let gameInterval;
-        let resetInterval;
+        const gridSize = 100;
+        const dotSize = 10;
 
-        // 盤面の初期化
-        for (let i = 0; i < 100 * 100; i++) {
-            const cell = document.createElement('div');
-            cell.classList.add('cell');
-            board.appendChild(cell);
+        let dots = [];
+        let interval;
+        let running = false;
+
+        // 点の初期化
+        function createDots() {
+            dots = [];
+            for (let i = 0; i < numDots; i++) {
+                const dot = {
+                    x: Math.floor(Math.random() * gridSize),
+                    y: Math.floor(Math.random() * gridSize),
+                    dx: (Math.random() * 30 + 20), // 20～50マス/秒
+                    dy: (Math.random() * 30 + 20),
+                };
+                dots.push(dot);
+                const dotElement = document.createElement('div');
+                dotElement.classList.add('dot');
+                board.appendChild(dotElement);
+                dot.element = dotElement;
+            }
         }
 
-        function createDot() {
-            const dot = document.createElement('div');
-            dot.classList.add('dot');
-            dot.style.left = `${Math.floor(Math.random() * 100) * 5}px`;
-            dot.style.top = `${Math.floor(Math.random() * 100) * 5}px`;
-            dot.velocityX = (Math.random() * (Math.random() < 0.5 ? -1 : 1) + 0.2).toFixed(2);
-            dot.velocityY = (Math.random() * (Math.random() < 0.5 ? -1 : 1) + 0.2).toFixed(2);
-            dots.push(dot);
-            board.appendChild(dot);
+        // マス目の生成
+        function createBoard() {
+            for (let i = 0; i < gridSize * gridSize; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                board.appendChild(cell);
+            }
         }
 
-        function moveDots() {
+        // 点の更新
+        function updateDots() {
             dots.forEach(dot => {
-                let x = parseFloat(dot.style.left);
-                let y = parseFloat(dot.style.top);
+                // 移動
+                dot.x += dot.dx / 60;
+                dot.y += dot.dy / 60;
 
-                // 端で反射
-                if (x <= 0 || x >= 495) dot.velocityX *= -1;
-                if (y <= 0 || y >= 495) dot.velocityY *= -1;
+                // 反射処理
+                if (dot.x >= gridSize || dot.x < 0) {
+                    dot.dx = -dot.dx;
+                }
+                if (dot.y >= gridSize || dot.y < 0) {
+                    dot.dy = -dot.dy;
+                }
 
-                // 点同士の反射処理 (簡易版)
-                dots.forEach(otherDot => {
-                    if (dot !== otherDot) {
-                        let dx = x - parseFloat(otherDot.style.left);
-                        let dy = y - parseFloat(otherDot.style.top);
-                        const distance = Math.sqrt(dx * dx + dy * dy);
-                        if (distance < 10) {
-                            dot.velocityX *= -1;
-                            dot.velocityY *= -1;
-                            otherDot.velocityX *= -1;
-                            otherDot.velocityY *= -1;
-                        }
-                    }
-                });
-
-                // 点を移動
-                dot.style.left = `${x + parseFloat(dot.velocityX)}px`;
-                dot.style.top = `${y + parseFloat(dot.velocityY)}px`;
+                // 点の位置更新
+                dot.element.style.left = `${dot.x * dotSize}px`;
+                dot.element.style.top = `${dot.y * dotSize}px`;
             });
         }
 
-        function startGame() {
-            // 初期化
-            for (let i = 0; i < numDots; i++) {
-                createDot();
+        // スタートボタンのクリック処理
+        startButton.addEventListener('click', () => {
+            if (!running) {
+                running = true;
+                interval = setInterval(updateDots, 1000 / 60); // 60FPS
             }
+        });
 
-            // 1秒間隔で点を動かす
-            gameInterval = setInterval(moveDots, 50);
+        // ストップボタンのクリック処理
+        stopButton.addEventListener('click', () => {
+            if (running) {
+                running = false;
+                clearInterval(interval);
+            }
+        });
 
-            // 1分ごとにリセット
-            resetInterval = setInterval(resetGame, 60000);
-        }
+        // リセットボタンのクリック処理
+        resetButton.addEventListener('click', () => {
+            clearInterval(interval);
+            running = false;
+            board.innerHTML = '';
+            createBoard();
+            createDots();
+        });
 
-        function stopGame() {
-            clearInterval(gameInterval);
-            clearInterval(resetInterval);
-        }
+        // 1分ごとの自動リセット
+        setInterval(() => {
+            resetButton.click();
+        }, 60000);
 
-        function resetGame() {
-            dots.forEach(dot => dot.remove());
-            dots.length = 0;
-            startGame();
-        }
+        // 初期化
+        createBoard();
+        createDots();
     </script>
 </body>
 </html>
