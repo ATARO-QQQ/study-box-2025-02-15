@@ -52,7 +52,7 @@
         const board = document.getElementById('board');
         const numDots = 10;
         const boardSize = 100;
-        const dotSize = 1;  // 1 cell
+        const dotSize = 1;  // 1 cell (dot takes 1 cell size)
         let dots = [];
         let interval;
         
@@ -70,27 +70,28 @@
             const dot = {
                 x: Math.floor(Math.random() * boardSize),
                 y: Math.floor(Math.random() * boardSize),
-                dx: (Math.random() * 2 - 1) * (Math.random() * 30 + 20),
-                dy: (Math.random() * 2 - 1) * (Math.random() * 30 + 20)
+                dx: (Math.random() * 2 - 1), // Horizontal speed, -1 or 1
+                dy: (Math.random() * 2 - 1), // Vertical speed, -1 or 1
+                speed: Math.random() * 30 + 20 // Random speed between 20 and 50
             };
             dots.push(dot);
         }
 
         function moveDots() {
             dots.forEach(dot => {
-                // Move the dot
+                // Move the dot by 1 cell in the current direction
                 dot.x += Math.round(dot.dx);
                 dot.y += Math.round(dot.dy);
 
-                // Reflect off walls
+                // Reflect off walls if the dot hits the boundary
                 if (dot.x < 0 || dot.x >= boardSize) dot.dx = -dot.dx;
                 if (dot.y < 0 || dot.y >= boardSize) dot.dy = -dot.dy;
 
                 // Draw the dot
                 const dotElement = document.createElement('div');
                 dotElement.classList.add('dot');
-                dotElement.style.left = dot.x + 'px';
-                dotElement.style.top = dot.y + 'px';
+                dotElement.style.left = dot.x * 5 + 'px';  // 5px per cell
+                dotElement.style.top = dot.y * 5 + 'px';   // 5px per cell
                 board.appendChild(dotElement);
             });
         }
