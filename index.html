@@ -67,6 +67,7 @@
         const resetBtn = document.getElementById('resetBtn');
         const numDots = 10;
         const gridSize = 100;
+        const cellSize = 100 / gridSize; // マス1つのサイズ
 
         let dots = [];
         let isRunning = false;
@@ -112,8 +113,8 @@
         // 点の移動
         function moveDots() {
             dots.forEach(dot => {
-                dot.x += dot.dx;
-                dot.y += dot.dy;
+                dot.x += dot.dx / 50; // 50msごとに動く
+                dot.y += dot.dy / 50;
 
                 // 盤面の端に衝突した場合、反射
                 if (dot.x >= gridSize || dot.x < 0) {
@@ -133,7 +134,7 @@
                 });
 
                 const cells = board.querySelectorAll('.cell');
-                const index = dot.y * gridSize + dot.x;
+                const index = Math.floor(dot.y) * gridSize + Math.floor(dot.x);
                 const cell = cells[index];
                 const dotElement = dot.element;
 
