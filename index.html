@@ -32,12 +32,22 @@
         }
 
         .grid div {
-            border: 1px solid #ddd;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
         }
 
         .grid div:nth-child(odd) {
-            border-left: 2px solid black;
-            border-top: 2px solid black;
+            border-left: 1px solid #ddd;
+            border-top: 1px solid #ddd;
+        }
+
+        .grid div:nth-last-child(-n+100) {
+            border-bottom: 2px solid black;
+        }
+
+        .grid div:nth-child(100n) {
+            border-right: 2px solid black;
         }
 
         .point {
