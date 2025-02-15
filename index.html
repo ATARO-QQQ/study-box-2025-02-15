@@ -16,11 +16,11 @@
         }
         #board {
             position: relative;
-            width: 1000px;
-            height: 1000px;
+            width: 500px;
+            height: 500px;
             display: grid;
-            grid-template-columns: repeat(100, 10px);
-            grid-template-rows: repeat(100, 10px);
+            grid-template-columns: repeat(50, 10px);
+            grid-template-rows: repeat(50, 10px);
             border: 10px solid black;
         }
         .cell {
@@ -58,7 +58,7 @@
         const resetButton = document.getElementById('resetButton');
 
         const numDots = 10;
-        const gridSize = 100;
+        const gridSize = 50; // 盤面のサイズを50x50に変更
         const dotSize = 10;
 
         let dots = [];
@@ -72,8 +72,8 @@
                 const dot = {
                     x: Math.floor(Math.random() * gridSize),
                     y: Math.floor(Math.random() * gridSize),
-                    dx: (Math.random() * 30 + 20), // 20～50マス/秒
-                    dy: (Math.random() * 30 + 20),
+                    dx: Math.floor(Math.random() * 31 + 20), // 20～50マス/秒
+                    dy: Math.floor(Math.random() * 31 + 20),
                 };
                 dots.push(dot);
                 const dotElement = document.createElement('div');
@@ -95,9 +95,13 @@
         // 点の更新
         function updateDots() {
             dots.forEach(dot => {
-                // 移動
+                // 点の位置更新
                 dot.x += dot.dx / 60;
                 dot.y += dot.dy / 60;
+
+                // 移動を整数値にしてカクカク感を強調
+                dot.x = Math.floor(dot.x);
+                dot.y = Math.floor(dot.y);
 
                 // 反射処理
                 if (dot.x >= gridSize || dot.x < 0) {
@@ -107,7 +111,7 @@
                     dot.dy = -dot.dy;
                 }
 
-                // 点の位置更新
+                // 点の位置をスタイルに反映
                 dot.element.style.left = `${dot.x * dotSize}px`;
                 dot.element.style.top = `${dot.y * dotSize}px`;
             });
