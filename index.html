@@ -3,187 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>反射箱</title>
+    <title>反射する点のゲーム</title>
     <style>
         body {
+            font-family: Arial, sans-serif;
+            text-align: center;
             margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            padding: 20px;
             background-color: #fff;
         }
 
-        #grid {
+        #board {
+            position: relative;
+            width: 500px;
+            height: 500px;
+            border: 5px solid black;
+            margin: auto;
+            background-color: white;
+        }
+
+        .grid {
+            position: absolute;
+            width: 100%;
+            height: 100%;
             display: grid;
-            grid-template-columns: repeat(100, 10px);
-            grid-template-rows: repeat(100, 10px);
-            gap: 0;
-            border: 4px solid #000;
+            grid-template-columns: repeat(100, 1fr);
+            grid-template-rows: repeat(100, 1fr);
         }
 
-        .cell {
-            width: 10px;
-            height: 10px;
+        .grid div {
             border: 1px solid #ddd;
-            background-color: #fff;
         }
 
-        .black {
-            background-color: #000;
+        .grid div:nth-child(odd) {
+            border-left: 2px solid black;
+            border-top: 2px solid black;
         }
 
-        .ant {
-            width: 10px;
-            height: 10px;
+        .point {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
             background-color: black;
             position: absolute;
         }
 
-        .button-container {
-            margin-top: 20px;
-            display: flex;
-            justify-content: space-between;
-            width: 300px;
-        }
-
         button {
             padding: 10px 20px;
+            margin: 10px;
             font-size: 16px;
             cursor: pointer;
-            background-color: #ddd;
-            border: none;
-            transition: background-color 0.3s;
         }
 
-        button:hover {
-            background-color: #bbb;
-        }
     </style>
 </head>
 <body>
+    <h1>反射する点のゲーム</h1>
+    <div id="board">
+        <div class="grid"></div>
+        <div id="points"></div>
+    </div>
+    <div>
+        <button onclick="startGame()">開始</button>
+        <button onclick="stopGame()">停止</button>
+        <button onclick="resetGame()">リセット</button>
+    </div>
 
-<div id="grid"></div>
-<div class="button-container">
-    <button onclick="start()">開始</button>
-    <button onclick="stop()">停止</button>
-    <button onclick="reset()">リセット</button>
-</div>
+    <script>
+        const boardSize = 500;
+        const gridSize = 100;
+        const speed = 50; // 1秒間に50マス
 
-<script>
-    const gridSize = 100;
-    const grid = document.getElementById('grid');
-    const ants = [];
-    let interval;
-    let isRunning = false;
+        let points = [];
+        let interval;
+        let gameRunning = false;
 
-    // 盤面の作成
-    const cells = [];
-    for (let i = 0; i < gridSize * gridSize; i++) {
-        const cell = document.createElement('div');
-        cell.classList.add('cell');
-        grid.appendChild(cell);
-        cells.push(cell);
-    }
-
-    // 初期位置のランダムな点10個を配置
-    for (let i = 0; i < 10; i++) {
-        ants.push({
-            x: Math.floor(Math.random() * gridSize),
-            y: Math.floor(Math.random() * gridSize),
-            direction: Math.floor(Math.random() * 4),  // 0: 上, 1: 右, 2: 下, 3: 左
-        });
-    }
-
-    // 点の移動
-    function moveAnts() {
-        for (let ant of ants) {
-            const index = ant.y * gridSize + ant.x;
-            const currentCell = cells[index];
-            
-            if (currentCell.classList.contains('black')) {
-                // 黒いセルなら反時計回りに方向を変更
-                ant.direction = (ant.direction + 3) % 4;
-                currentCell.classList.remove('black');
-            } else {
-                // 白いセルなら時計回りに方向を変更
-                ant.direction = (ant.direction + 1) % 4;
-                currentCell.classList.add('black');
+        // 点の初期化
+        function initializePoints() {
+            points = [];
+            for (let i = 0; i < 10; i++) {
+                points.push({
+                    x: Math.floor(Math.random() * gridSize),
+                    y: Math.floor(Math.random() * gridSize),
+                    dx: (Math.random() > 0.5 ? 1 : -1) * speed,
+                    dy: (Math.random() > 0.5 ? 1 : -1) * speed
+                });
             }
-
-            // 移動
-            if (ant.direction === 0) { // 上
-                ant.y = (ant.y - 1 + gridSize) % gridSize;
-            } else if (ant.direction === 1) { // 右
-                ant.x = (ant.x + 1) % gridSize;
-            } else if (ant.direction === 2) { // 下
-                ant.y = (ant.y + 1) % gridSize;
-            } else if (ant.direction === 3) { // 左
-                ant.x = (ant.x - 1 + gridSize) % gridSize;
-            }
-
-            // 端にぶつかると反射
-            if (ant.x < 0) ant.x = 0;
-            if (ant.x >= gridSize) ant.x = gridSize - 1;
-            if (ant.y < 0) ant.y = 0;
-            if (ant.y >= gridSize) ant.y = gridSize - 1;
         }
 
-        // 現在のアリの位置を描画
-        renderAnts();
-    }
-
-    // アリを描画
-    function renderAnts() {
-        // 全てのアリをリセット
-        const antElements = document.querySelectorAll('.ant');
-        antElements.forEach((ant) => ant.remove());
-
-        for (let ant of ants) {
-            const antElement = document.createElement('div');
-            antElement.classList.add('ant');
-            antElement.style.top = `${ant.y * 10}px`;
-            antElement.style.left = `${ant.x * 10}px`;
-            grid.appendChild(antElement);
-        }
-    }
-
-    // 開始
-    function start() {
-        if (!isRunning) {
-            isRunning = true;
-            interval = setInterval(moveAnts, 20);
-        }
-    }
-
-    // 停止
-    function stop() {
-        clearInterval(interval);
-        isRunning = false;
-    }
-
-    // リセット
-    function reset() {
-        stop();
-        ants.length = 0;
-
-        for (let i = 0; i < 10; i++) {
-            ants.push({
-                x: Math.floor(Math.random() * gridSize),
-                y: Math.floor(Math.random() * gridSize),
-                direction: Math.floor(Math.random() * 4),
+        // 点の描画
+        function drawPoints() {
+            const pointsContainer = document.getElementById('points');
+            pointsContainer.innerHTML = '';
+            points.forEach(point => {
+                const div = document.createElement('div');
+                div.classList.add('point');
+                div.style.left = `${(point.x * boardSize) / gridSize}px`;
+                div.style.top = `${(point.y * boardSize) / gridSize}px`;
+                pointsContainer.appendChild(div);
             });
         }
 
-        cells.forEach(cell => cell.classList.remove('black'));
-        renderAnts();
-    }
+        // 点の移動
+        function movePoints() {
+            points.forEach(point => {
+                point.x += point.dx / gridSize;
+                point.y += point.dy / gridSize;
 
-    // 最初にアリを描画
-    renderAnts();
+                // 盤面の端で反射
+                if (point.x <= 0 || point.x >= gridSize) {
+                    point.dx = -point.dx;
+                }
+                if (point.y <= 0 || point.y >= gridSize) {
+                    point.dy = -point.dy;
+                }
 
-</script>
+                // 点同士の衝突判定
+                points.forEach(otherPoint => {
+                    if (point !== otherPoint && Math.abs(point.x - otherPoint.x) < 1 && Math.abs(point.y - otherPoint.y) < 1) {
+                        point.dx = -point.dx;
+                        point.dy = -point.dy;
+                    }
+                });
+            });
+        }
 
+        // ゲームの開始
+        function startGame() {
+            if (gameRunning) return;
+            gameRunning = true;
+            initializePoints();
+            drawPoints();
+            interval = setInterval(() => {
+                movePoints();
+                drawPoints();
+            }, 1000 / speed);
+            resetTimer();
+        }
+
+        // ゲームの停止
+        function stopGame() {
+            gameRunning = false;
+            clearInterval(interval);
+        }
+
+        // ゲームのリセット
+        function resetGame() {
+            stopGame();
+            initializePoints();
+            drawPoints();
+        }
+
+        // 1分ごとに盤面をリセット
+        let resetTimerInterval;
+        function resetTimer() {
+            clearInterval(resetTimerInterval);
+            resetTimerInterval = setInterval(() => {
+                resetGame();
+            }, 60000); // 1分ごとにリセット
+        }
+    </script>
 </body>
 </html>
