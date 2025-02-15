@@ -3,69 +3,187 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ラングトンのアリ風シミュレーション</title>
+    <title>反射箱</title>
     <style>
-        body { display: flex; justify-content: center; align-items: center; height: 100vh; background: #fff; margin: 0; }
-        canvas { border: 1px solid #000; }
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #fff;
+        }
+
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(100, 10px);
+            grid-template-rows: repeat(100, 10px);
+            gap: 0;
+            border: 4px solid #000;
+        }
+
+        .cell {
+            width: 10px;
+            height: 10px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+        }
+
+        .black {
+            background-color: #000;
+        }
+
+        .ant {
+            width: 10px;
+            height: 10px;
+            background-color: black;
+            position: absolute;
+        }
+
+        .button-container {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            width: 300px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #ddd;
+            border: none;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #bbb;
+        }
     </style>
 </head>
 <body>
-    <canvas id="canvas"></canvas>
-    <script>
-        const canvas = document.getElementById("canvas");
-        const ctx = canvas.getContext("2d");
-        const size = 200;
-        const scale = 3;
-        canvas.width = size * scale;
-        canvas.height = size * scale;
 
-        class Particle {
-            constructor(x, y, dx, dy) {
-                this.x = x;
-                this.y = y;
-                this.dx = dx;
-                this.dy = dy;
-            }
+<div id="grid"></div>
+<div class="button-container">
+    <button onclick="start()">開始</button>
+    <button onclick="stop()">停止</button>
+    <button onclick="reset()">リセット</button>
+</div>
 
-            move() {
-                this.x += this.dx;
-                this.y += this.dy;
+<script>
+    const gridSize = 100;
+    const grid = document.getElementById('grid');
+    const ants = [];
+    let interval;
+    let isRunning = false;
 
-                if (this.x < 0 || this.x >= size) this.dx *= -1;
-                if (this.y < 0 || this.y >= size) this.dy *= -1;
-            }
-        }
+    // 盤面の作成
+    const cells = [];
+    for (let i = 0; i < gridSize * gridSize; i++) {
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+        grid.appendChild(cell);
+        cells.push(cell);
+    }
 
-        let particles = [];
-        for (let i = 0; i < 10; i++) {
-            let x = Math.floor(Math.random() * size);
-            let y = Math.floor(Math.random() * size);
-            let dx = Math.random() < 0.5 ? 1 : -1;
-            let dy = Math.random() < 0.5 ? 1 : -1;
-            particles.push(new Particle(x, y, dx, dy));
-        }
+    // 初期位置のランダムな点10個を配置
+    for (let i = 0; i < 10; i++) {
+        ants.push({
+            x: Math.floor(Math.random() * gridSize),
+            y: Math.floor(Math.random() * gridSize),
+            direction: Math.floor(Math.random() * 4),  // 0: 上, 1: 右, 2: 下, 3: 左
+        });
+    }
 
-        function update() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // 点の移動
+    function moveAnts() {
+        for (let ant of ants) {
+            const index = ant.y * gridSize + ant.x;
+            const currentCell = cells[index];
             
-            for (let i = 0; i < particles.length; i++) {
-                let p1 = particles[i];
-                p1.move();
-                for (let j = i + 1; j < particles.length; j++) {
-                    let p2 = particles[j];
-                    if (p1.x === p2.x && p1.y === p2.y) {
-                        p1.dx *= -1;
-                        p1.dy *= -1;
-                        p2.dx *= -1;
-                        p2.dy *= -1;
-                    }
-                }
-                ctx.fillRect(p1.x * scale, p1.y * scale, scale, scale);
+            if (currentCell.classList.contains('black')) {
+                // 黒いセルなら反時計回りに方向を変更
+                ant.direction = (ant.direction + 3) % 4;
+                currentCell.classList.remove('black');
+            } else {
+                // 白いセルなら時計回りに方向を変更
+                ant.direction = (ant.direction + 1) % 4;
+                currentCell.classList.add('black');
             }
-            setTimeout(() => requestAnimationFrame(update), 20);
+
+            // 移動
+            if (ant.direction === 0) { // 上
+                ant.y = (ant.y - 1 + gridSize) % gridSize;
+            } else if (ant.direction === 1) { // 右
+                ant.x = (ant.x + 1) % gridSize;
+            } else if (ant.direction === 2) { // 下
+                ant.y = (ant.y + 1) % gridSize;
+            } else if (ant.direction === 3) { // 左
+                ant.x = (ant.x - 1 + gridSize) % gridSize;
+            }
+
+            // 端にぶつかると反射
+            if (ant.x < 0) ant.x = 0;
+            if (ant.x >= gridSize) ant.x = gridSize - 1;
+            if (ant.y < 0) ant.y = 0;
+            if (ant.y >= gridSize) ant.y = gridSize - 1;
         }
 
-        update();
-    </script>
+        // 現在のアリの位置を描画
+        renderAnts();
+    }
+
+    // アリを描画
+    function renderAnts() {
+        // 全てのアリをリセット
+        const antElements = document.querySelectorAll('.ant');
+        antElements.forEach((ant) => ant.remove());
+
+        for (let ant of ants) {
+            const antElement = document.createElement('div');
+            antElement.classList.add('ant');
+            antElement.style.top = `${ant.y * 10}px`;
+            antElement.style.left = `${ant.x * 10}px`;
+            grid.appendChild(antElement);
+        }
+    }
+
+    // 開始
+    function start() {
+        if (!isRunning) {
+            isRunning = true;
+            interval = setInterval(moveAnts, 20);
+        }
+    }
+
+    // 停止
+    function stop() {
+        clearInterval(interval);
+        isRunning = false;
+    }
+
+    // リセット
+    function reset() {
+        stop();
+        ants.length = 0;
+
+        for (let i = 0; i < 10; i++) {
+            ants.push({
+                x: Math.floor(Math.random() * gridSize),
+                y: Math.floor(Math.random() * gridSize),
+                direction: Math.floor(Math.random() * 4),
+            });
+        }
+
+        cells.forEach(cell => cell.classList.remove('black'));
+        renderAnts();
+    }
+
+    // 最初にアリを描画
+    renderAnts();
+
+</script>
+
 </body>
 </html>
