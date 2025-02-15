@@ -3,117 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>反射する点のシミュレーション</title>
+    <title>モノクロ盤面の動く点</title>
     <style>
         body {
-            margin: 0;
-            padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
+            margin: 0;
             background-color: #f0f0f0;
         }
-        #board {
+        .board {
             display: grid;
             grid-template-columns: repeat(100, 1fr);
             grid-template-rows: repeat(100, 1fr);
-            gap: 1px;
-            border: 2px solid black;
-            width: 80vmin;
-            height: 80vmin;
+            width: 100vmin;
+            height: 100vmin;
+            border: 5px solid black;
             position: relative;
-            background-color: white;
         }
         .cell {
-            border: 1px solid #d3d3d3;
-            background-color: white;
+            border: 0.5px solid lightgray;
         }
         .dot {
             width: 100%;
             height: 100%;
             background-color: black;
             position: absolute;
+            border-radius: 0;
+        }
+        .buttons {
+            position: absolute;
+            top: 110%;
+            display: flex;
+            gap: 10px;
         }
         button {
-            margin-top: 20px;
-            padding: 10px 20px;
+            padding: 10px;
             font-size: 16px;
             cursor: pointer;
         }
     </style>
 </head>
 <body>
-    <div id="board"></div>
-    <button onclick="start()">開始</button>
-    <button onclick="stop()">停止</button>
-    <button onclick="reset()">リセット</button>
+    <div class="board" id="board"></div>
+    <div class="buttons">
+        <button onclick="start()">開始</button>
+        <button onclick="stop()">停止</button>
+        <button onclick="reset()">リセット</button>
+    </div>
 
     <script>
-        const board = document.getElementById('board');
-        const dotCount = 10;
-        const gridSize = 100;
-        const maxSpeed = 50;
-        const minSpeed = 20;
-        const dots = [];
-
-        // マス目の生成
-        for (let i = 0; i < gridSize * gridSize; i++) {
-            const cell = document.createElement('div');
-            cell.classList.add('cell');
-            board.appendChild(cell);
-        }
-
-        class Dot {
-            constructor() {
-                this.x = Math.floor(Math.random() * gridSize);
-                this.y = Math.floor(Math.random() * gridSize);
-                this.dx = Math.random() < 0.5 ? 1 : -1;
-                this.dy = Math.random() < 0.5 ? 1 : -1;
-                this.speed = Math.floor(Math.random() * (maxSpeed - minSpeed + 1)) + minSpeed;
-                this.element = document.createElement('div');
-                this.element.classList.add('dot');
-                board.appendChild(this.element);
-                this.updatePosition();
-            }
-
-            updatePosition() {
-                const offsetX = this.x * (100 / gridSize);
-                const offsetY = this.y * (100 / gridSize);
-                this.element.style.left = `${offsetX}%`;
-                this.element.style.top = `${offsetY}%`;
-            }
-
-            move() {
-                const nextX = this.x + this.dx;
-                const nextY = this.y + this.dy;
-
-                // 反射処理
-                if (nextX >= gridSize || nextX < 0) this.dx = -this.dx;
-                if (nextY >= gridSize || nextY < 0) this.dy = -this.dy;
-
-                this.x += this.dx;
-                this.y += this.dy;
-
-                this.updatePosition();
-            }
-        }
-
-        // 点の初期化
-        for (let i = 0; i < dotCount; i++) {
-            dots.push(new Dot());
-        }
-
+        const boardSize = 100;
+        const numDots = 10;
+        let dots = [];
         let interval;
         let isRunning = false;
 
-        function start() {
-            if (!isRunning) {
-                isRunning = true;
-                interval = setInterval(() => {
-                    dots.forEach(dot => dot.move());
-                }, 1000 / 60); // 60fps
+        function createBoard() {
+            const board = document.getElementById('board');
+            for (let i = 0; i < boardSize * boardSize; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                board.appendChild(cell);
             }
+        }
+
+        function createDot() {
+            const dot = {
+                x: Math.floor(Math.random() * boardSize),
+                y: Math.floor(Math.random() * boardSize),
+                dx: Math.random() * 30 + 20,  // ランダム速度 (20 - 50)
+                dy: Math.random() * 30 + 20,  // ランダム速度 (20 - 50)
+                element: document.createElement('div')
+            };
+            dot.element.classList.add('dot');
+            document.getElementById('board').appendChild(dot.element);
+            return dot;
+        }
+
+        function updateDots() {
+            dots.forEach(dot => {
+                dot.x += dot.dx;
+                dot.y += dot.dy;
+
+                // 反射処理 (端にぶつかる)
+                if (dot.x >= boardSize) {
+                    dot.dx = -Math.abs(dot.dx);
+                } else if (dot.x < 0) {
+                    dot.dx = Math.abs(dot.dx);
+                }
+
+                if (dot.y >= boardSize) {
+                    dot.dy = -Math.abs(dot.dy);
+                } else if (dot.y < 0) {
+                    dot.dy = Math.abs(dot.dy);
+                }
+
+                // 点の位置更新
+                dot.element.style.left = `${dot.x * 100 / boardSize}%`;
+                dot.element.style.top = `${dot.y * 100 / boardSize}%`;
+            });
+        }
+
+        function start() {
+            if (isRunning) return;
+            dots = [];
+            for (let i = 0; i < numDots; i++) {
+                dots.push(createDot());
+            }
+            isRunning = true;
+            interval = setInterval(updateDots, 1000 / 30); // 30fps
         }
 
         function stop() {
@@ -122,15 +122,12 @@
         }
 
         function reset() {
-            dots.forEach(dot => {
-                dot.x = Math.floor(Math.random() * gridSize);
-                dot.y = Math.floor(Math.random() * gridSize);
-                dot.dx = Math.random() < 0.5 ? 1 : -1;
-                dot.dy = Math.random() < 0.5 ? 1 : -1;
-                dot.speed = Math.floor(Math.random() * (maxSpeed - minSpeed + 1)) + minSpeed;
-                dot.updatePosition();
-            });
+            stop();
+            document.getElementById('board').innerHTML = '';
+            createBoard();
         }
+
+        createBoard();
     </script>
 </body>
 </html>
