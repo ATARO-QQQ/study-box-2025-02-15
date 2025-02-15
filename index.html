@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ラングトンのアリ風シミュレーション</title>
+    <style>
+        body { display: flex; justify-content: center; align-items: center; height: 100vh; background: #fff; margin: 0; }
+        canvas { border: 1px solid #000; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        const size = 200;
+        const scale = 3;
+        canvas.width = size * scale;
+        canvas.height = size * scale;
+
+        class Particle {
+            constructor(x, y, dx, dy) {
+                this.x = x;
+                this.y = y;
+                this.dx = dx;
+                this.dy = dy;
+            }
+
+            move() {
+                this.x += this.dx;
+                this.y += this.dy;
+
+                if (this.x < 0 || this.x >= size) this.dx *= -1;
+                if (this.y < 0 || this.y >= size) this.dy *= -1;
+            }
+        }
+
+        let particles = [];
+        for (let i = 0; i < 10; i++) {
+            let x = Math.floor(Math.random() * size);
+            let y = Math.floor(Math.random() * size);
+            let dx = Math.random() < 0.5 ? 1 : -1;
+            let dy = Math.random() < 0.5 ? 1 : -1;
+            particles.push(new Particle(x, y, dx, dy));
+        }
+
+        function update() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            for (let i = 0; i < particles.length; i++) {
+                let p1 = particles[i];
+                p1.move();
+                for (let j = i + 1; j < particles.length; j++) {
+                    let p2 = particles[j];
+                    if (p1.x === p2.x && p1.y === p2.y) {
+                        p1.dx *= -1;
+                        p1.dy *= -1;
+                        p2.dx *= -1;
+                        p2.dy *= -1;
+                    }
+                }
+                ctx.fillRect(p1.x * scale, p1.y * scale, scale, scale);
+            }
+            setTimeout(() => requestAnimationFrame(update), 20);
+        }
+
+        update();
+    </script>
+</body>
+</html>
