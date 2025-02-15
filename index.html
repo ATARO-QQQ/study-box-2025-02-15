@@ -74,8 +74,9 @@
     dot.classList.add('dot');
     dot.style.left = `${Math.random() * (boardSize - 5)}px`;
     dot.style.top = `${Math.random() * (boardSize - 5)}px`;
-    dot.dx = Math.random() * 30 + 20;
-    dot.dy = Math.random() * 30 + 20;
+    // 遅くするために速度範囲を変更
+    dot.dx = Math.random() * 15 + 10; // 速度範囲を小さく設定
+    dot.dy = Math.random() * 15 + 10; // 速度範囲を小さく設定
     dots.push(dot);
     document.getElementById('board').appendChild(dot);
   }
