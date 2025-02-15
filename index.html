@@ -1,171 +1,136 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>反射する点の動き</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background-color: #f0f0f0;
-    }
-    #board {
-      display: grid;
-      grid-template-columns: repeat(100, 1fr);
-      grid-template-rows: repeat(100, 1fr);
-      width: 80vmin;
-      height: 80vmin;
-      border: 3px solid black;
-      position: relative;
-      background-color: white;
-    }
-    .cell {
-      border: 1px solid #d3d3d3;
-      box-sizing: border-box;
-    }
-    .dot {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      background-color: black;
-      border-radius: 50%;
-      pointer-events: none;
-    }
-    .buttons {
-      margin-top: 20px;
-      display: flex;
-      gap: 10px;
-    }
-    button {
-      padding: 10px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    button:disabled {
-      background-color: #ccc;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>反射する点のシミュレーション</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        #board {
+            display: grid;
+            grid-template-columns: repeat(100, 1fr);
+            grid-template-rows: repeat(100, 1fr);
+            gap: 1px;
+            border: 2px solid black;
+            width: 80vmin;
+            height: 80vmin;
+            position: relative;
+            background-color: white;
+        }
+        .cell {
+            border: 1px solid #d3d3d3;
+            background-color: white;
+        }
+        .dot {
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            position: absolute;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
+    <div id="board"></div>
+    <button onclick="start()">開始</button>
+    <button onclick="stop()">停止</button>
+    <button onclick="reset()">リセット</button>
 
-  <div id="board"></div>
-  <div class="buttons">
-    <button id="startBtn">開始</button>
-    <button id="stopBtn" disabled>停止</button>
-    <button id="resetBtn">リセット</button>
-  </div>
+    <script>
+        const board = document.getElementById('board');
+        const dotCount = 10;
+        const gridSize = 100;
+        const maxSpeed = 50;
+        const minSpeed = 20;
+        const dots = [];
 
-  <script>
-    const boardSize = 100;
-    const dotCount = 10;
-    const dots = [];
-    const speeds = [];
-
-    const board = document.getElementById('board');
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const resetBtn = document.getElementById('resetBtn');
-
-    // 盤面のセルを作成
-    for (let i = 0; i < boardSize * boardSize; i++) {
-      const cell = document.createElement('div');
-      cell.classList.add('cell');
-      board.appendChild(cell);
-    }
-
-    // ランダムな点の初期位置と速度を設定
-    function initDots() {
-      dots.length = 0;
-      speeds.length = 0;
-      for (let i = 0; i < dotCount; i++) {
-        const x = Math.floor(Math.random() * boardSize);
-        const y = Math.floor(Math.random() * boardSize);
-        const speed = Math.floor(Math.random() * 31) + 20; // 20～50マスのランダムな速度
-
-        dots.push({ x, y });
-        speeds.push({ x: speed * (Math.random() < 0.5 ? 1 : -1), y: speed * (Math.random() < 0.5 ? 1 : -1) });
-      }
-    }
-
-    // 点を盤面に配置
-    function renderDots() {
-      const dotElements = document.querySelectorAll('.dot');
-      dotElements.forEach(el => el.remove());
-
-      dots.forEach(dot => {
-        const dotElement = document.createElement('div');
-        dotElement.classList.add('dot');
-        dotElement.style.left = `${dot.x * 100 / boardSize}%`;
-        dotElement.style.top = `${dot.y * 100 / boardSize}%`;
-        board.appendChild(dotElement);
-      });
-    }
-
-    // 1秒ごとに点を更新
-    let animationId;
-    function moveDots() {
-      for (let i = 0; i < dotCount; i++) {
-        const dot = dots[i];
-        const speed = speeds[i];
-
-        dot.x += speed.x;
-        dot.y += speed.y;
-
-        // 端で反射
-        if (dot.x <= 0 || dot.x >= boardSize - 1) {
-          speeds[i].x *= -1;
-        }
-        if (dot.y <= 0 || dot.y >= boardSize - 1) {
-          speeds[i].y *= -1;
+        // マス目の生成
+        for (let i = 0; i < gridSize * gridSize; i++) {
+            const cell = document.createElement('div');
+            cell.classList.add('cell');
+            board.appendChild(cell);
         }
 
-        // 点同士で反射
-        for (let j = 0; j < dotCount; j++) {
-          if (i !== j && Math.abs(dot.x - dots[j].x) <= 1 && Math.abs(dot.y - dots[j].y) <= 1) {
-            speeds[i].x *= -1;
-            speeds[i].y *= -1;
-            speeds[j].x *= -1;
-            speeds[j].y *= -1;
-          }
+        class Dot {
+            constructor() {
+                this.x = Math.floor(Math.random() * gridSize);
+                this.y = Math.floor(Math.random() * gridSize);
+                this.dx = Math.random() < 0.5 ? 1 : -1;
+                this.dy = Math.random() < 0.5 ? 1 : -1;
+                this.speed = Math.floor(Math.random() * (maxSpeed - minSpeed + 1)) + minSpeed;
+                this.element = document.createElement('div');
+                this.element.classList.add('dot');
+                board.appendChild(this.element);
+                this.updatePosition();
+            }
+
+            updatePosition() {
+                const offsetX = this.x * (100 / gridSize);
+                const offsetY = this.y * (100 / gridSize);
+                this.element.style.left = `${offsetX}%`;
+                this.element.style.top = `${offsetY}%`;
+            }
+
+            move() {
+                const nextX = this.x + this.dx;
+                const nextY = this.y + this.dy;
+
+                // 反射処理
+                if (nextX >= gridSize || nextX < 0) this.dx = -this.dx;
+                if (nextY >= gridSize || nextY < 0) this.dy = -this.dy;
+
+                this.x += this.dx;
+                this.y += this.dy;
+
+                this.updatePosition();
+            }
         }
-      }
 
-      renderDots();
-    }
+        // 点の初期化
+        for (let i = 0; i < dotCount; i++) {
+            dots.push(new Dot());
+        }
 
-    // 開始ボタン
-    startBtn.addEventListener('click', () => {
-      startBtn.disabled = true;
-      stopBtn.disabled = false;
-      initDots();
-      renderDots();
-      animationId = setInterval(moveDots, 1000 / 30); // 30FPS
-    });
+        let interval;
+        let isRunning = false;
 
-    // 停止ボタン
-    stopBtn.addEventListener('click', () => {
-      startBtn.disabled = false;
-      stopBtn.disabled = true;
-      clearInterval(animationId);
-    });
+        function start() {
+            if (!isRunning) {
+                isRunning = true;
+                interval = setInterval(() => {
+                    dots.forEach(dot => dot.move());
+                }, 1000 / 60); // 60fps
+            }
+        }
 
-    // リセットボタン
-    resetBtn.addEventListener('click', () => {
-      clearInterval(animationId);
-      initDots();
-      renderDots();
-      startBtn.disabled = false;
-      stopBtn.disabled = true;
-    });
+        function stop() {
+            clearInterval(interval);
+            isRunning = false;
+        }
 
-  </script>
+        function reset() {
+            dots.forEach(dot => {
+                dot.x = Math.floor(Math.random() * gridSize);
+                dot.y = Math.floor(Math.random() * gridSize);
+                dot.dx = Math.random() < 0.5 ? 1 : -1;
+                dot.dy = Math.random() < 0.5 ? 1 : -1;
+                dot.speed = Math.floor(Math.random() * (maxSpeed - minSpeed + 1)) + minSpeed;
+                dot.updatePosition();
+            });
+        }
+    </script>
 </body>
 </html>
